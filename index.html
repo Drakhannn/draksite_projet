@@ -868,6 +868,39 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
   .day-view.mobile-only{display:none;}
   .week-grid{display:grid;}
 }
+
+/* ══════════════════════════════════
+   RESPONSIVE MOBILE — STATS & NAV
+══════════════════════════════════ */
+@media(max-width:768px){
+  /* Nav — 3 onglets + déco */
+  .nav{flex-wrap:wrap;gap:6px;padding:10px 12px;}
+  .nav-tabs{order:2;width:100%;justify-content:center;gap:0;}
+  .nav-tab{flex:1;text-align:center;padding:7px 6px;font-size:0.42rem;letter-spacing:1.5px;}
+  .nav-user{order:1;margin-left:auto;}
+  .nav-logo{order:0;}
+
+  /* Stats header */
+  .stats-header{gap:10px;padding:12px 0 0;}
+  .stats-period{font-size:1rem;letter-spacing:3px;min-width:120px;}
+
+  /* Stats chart */
+  .stats-chart-wrap{height:220px;}
+  .stats-chart-card{padding:16px 12px 14px;}
+
+  /* Stats cats grid — 2 colonnes sur mobile */
+  .stats-cats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stats-cat-count{font-size:1.6rem;}
+  .stats-cat-card{padding:12px 14px;}
+
+  /* Day detail panel */
+  .stats-day-detail{padding:12px 14px;}
+}
+@media(max-width:380px){
+  .stats-cats-grid{grid-template-columns:1fr;}
+  .nav-tab{font-size:0.38rem;padding:6px 4px;}
+}
+
 </style>
 </head>
 <body>
