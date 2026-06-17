@@ -10,6 +10,8 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { getFirestore, doc, getDoc, setDoc }
+    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   
   const firebaseConfig = {
@@ -23,6 +25,7 @@
 
   const app      = initializeApp(firebaseConfig);
   const auth     = getAuth(app);
+  const db       = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
   // UID autorisé : ton compte Google → récupérer après 1ère connexion
@@ -34,7 +37,13 @@
   const userAvatar  = document.getElementById('nav-user-avatar');
   const userEmail   = document.getElementById('nav-user-email');
 
-  function showApp(user) {
+  async function showApp(user) {
+    // Charger les données Firestore avant d'afficher
+    folders   = await fsLoad('folders', []);
+    planTasks = await fsLoad('planTasks', {});
+    // Rafraîchir l'UI avec les données chargées
+    if (typeof renderFolders === 'function') renderFolders();
+    if (typeof renderWeek   === 'function') renderWeek();
     loginScreen.style.display = 'none';
     appWrap.style.display     = 'block';
     if (userAvatar) { userAvatar.src = user.photoURL || ''; userAvatar.style.display = 'block'; }
@@ -58,6 +67,11 @@
   });
 
   // Exposer les fonctions au scope global (onclick)
+  // Expose Firestore helpers to global scope
+  window._db = db;
+  window._fsLoad = fsLoad;
+  window._fsSave = fsSave;
+
   window._firebaseSignIn = async () => {
     document.getElementById('login-error').textContent = '';
     try { await signInWithPopup(auth, provider); }
@@ -1022,10 +1036,23 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 
 <script>
 // ═══════════════════ STORAGE ═══════════════════
-function load(k,d){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d));}catch(e){return d;}}
-function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-let folders = load('drk_folders2',[]);
-let planTasks = load('drk_plan_tasks2',{});
+// ── Firestore helpers ──
+async function fsLoad(key, def) {
+  try {
+    const snap = await getDoc(doc(db, 'dashboard_data', key));
+    return snap.exists() ? snap.data().value : def;
+  } catch(e) { return def; }
+}
+async function fsSave(key, value) {
+  try { await setDoc(doc(db, 'dashboard_data', key), { value }); } catch(e) {}
+}
+// Aliases pour compatibilité (sync wrappers — données chargées au login)
+function save(k, v) {
+  const fsKey = k === 'drk_folders2' ? 'folders' : 'planTasks';
+  if (window._fsSave) window._fsSave(fsKey, v);
+}
+let folders = [];
+let planTasks = {};
 
 // ═══════════════════ UTILS ═══════════════════
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
