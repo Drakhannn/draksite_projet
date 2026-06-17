@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DRAKHANN — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07090e">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DRAKHANN">
 <!-- Firebase Auth -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -47,6 +56,11 @@
     setTimeout(() => {
       if (typeof renderFolders === 'function') renderFolders();
       if (typeof renderPlan === 'function') renderPlan();
+      if (location.hash === '#plan' && typeof showPage === 'function') {
+        showPage('plan');
+        history.replaceState(null, '', location.pathname + location.search);
+      }
+      if (typeof checkAndNotifyIncomplete === 'function') checkAndNotifyIncomplete();
     }, 50);
     if (userAvatar) { userAvatar.src = user.photoURL || ''; userAvatar.style.display = 'block'; }
     if (userEmail)  { userEmail.textContent = user.displayName || user.email; userEmail.style.display = 'inline'; }
@@ -390,6 +404,15 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
   transition:all .2s;white-space:nowrap;
 }
 .btn-logout:hover{border-color:rgba(232,55,42,0.4);color:var(--red);background:rgba(232,55,42,0.08);}
+
+.btn-icon-sm{
+  font-size:0.8rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:all .2s;flex-shrink:0;
+}
+.btn-icon-sm:hover{border-color:rgba(232,55,42,0.4);background:rgba(232,55,42,0.08);}
+.btn-icon-sm.active{border-color:rgba(232,55,42,0.5);background:rgba(232,55,42,0.15);box-shadow:0 0 10px rgba(232,55,42,0.2);}
 
 .plan-header{
   display:flex;align-items:center;justify-content:space-between;
@@ -933,6 +956,8 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
     <button class="nav-tab" onclick="showPage('stats')">// Stats</button>
   </div>
   <div class="nav-user">
+    <button class="btn-icon-sm" id="installBtn" onclick="installApp()" title="Installer l'app" style="display:none;">📲</button>
+    <button class="btn-icon-sm" id="notifBtn" onclick="toggleNotifications()" title="Notifications">🔕</button>
     <img id="nav-user-avatar" src="" alt="avatar"/>
     <span id="nav-user-email" style="display:none;"></span>
     <button class="btn-logout" onclick="window._firebaseSignOut && window._firebaseSignOut()">// Déco</button>
@@ -2377,6 +2402,86 @@ function drawStatsChart(data, days){
 
 window.addEventListener('resize',()=>{ if(document.getElementById('page-plan').classList.contains('active')) renderPlan(); });
 
+// ═══════════════════ NOTIFICATIONS LOCALES ═══════════════════
+// À partir de 21h, si des tâches du jour ne sont pas cochées → 1 notif (1x/jour max).
+function updateNotifBtn(){
+  const btn = document.getElementById('notifBtn');
+  if(!btn) return;
+  const granted = ('Notification' in window) && Notification.permission === 'granted';
+  btn.textContent = granted ? '🔔' : '🔕';
+  btn.classList.toggle('active', granted);
+  btn.title = granted ? 'Notifications activées' : 'Activer les notifications';
+}
+
+async function tryRegisterPeriodicSync(){
+  try{
+    if(!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.ready;
+    if(!('periodicSync' in reg) || !('permissions' in navigator)) return;
+    const status = await navigator.permissions.query({name:'periodic-background-sync'});
+    if(status.state === 'granted'){
+      await reg.periodicSync.register('task-check', { minInterval: 12*60*60*1000 });
+    }
+  } catch(e){ /* non supporté sur ce navigateur — pas grave, le check au premier plan suffit */ }
+}
+
+window.toggleNotifications = async function(){
+  if(!('Notification' in window)){ toast('// Notifs non supportées ici'); return; }
+  if(Notification.permission === 'granted'){
+    toast('// Notifications déjà activées');
+    return;
+  }
+  if(Notification.permission === 'denied'){
+    toast('// Bloquées — vérifie les réglages'); 
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  updateNotifBtn();
+  if(perm === 'granted'){
+    toast('// Notifications activées ✓');
+    tryRegisterPeriodicSync();
+    checkAndNotifyIncomplete();
+  } else {
+    toast('// Notifications refusées');
+  }
+};
+
+async function checkAndNotifyIncomplete(){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  if(now.getHours() < 21) return; // pas avant 21h
+
+  const todayKey   = dKey(now);
+  const tasks      = planTasks[todayKey] || [];
+  const incomplete = tasks.filter(t => !t.done);
+  if(!incomplete.length) return; // rien d'en attente
+
+  if(localStorage.getItem('drk_lastNotifyDate') === todayKey) return; // déjà notifié aujourd'hui
+
+  const body = incomplete.length === 1
+    ? "Tu as 1 tâche non complétée aujourd'hui 🔴"
+    : `Tu as ${incomplete.length} tâches non complétées aujourd'hui 🔴`;
+  const opts = {
+    body,
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: 'drakhann-daily-' + todayKey,
+    data: { url: './index.html#plan' }
+  };
+
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('DRAKHANN', opts);
+  } catch(e){
+    try{ new Notification('DRAKHANN', opts); } catch(e2){}
+  }
+  localStorage.setItem('drk_lastNotifyDate', todayKey);
+}
+
+updateNotifBtn();
+setInterval(checkAndNotifyIncomplete, 5*60*1000); // re-check toutes les 5 min tant que l'app reste ouverte
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkAndNotifyIncomplete(); });
+
 // Init
 renderObjectifs();
 renderPlan();
@@ -2475,6 +2580,45 @@ renderPlan();
     requestAnimationFrame(anim);
   }
   anim();
+})();
+</script>
+
+<script>
+/* ── PWA : service worker + bouton d'installation ── */
+(function(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js')
+        .catch(e => console.warn('[SW] enregistrement échoué', e));
+    });
+  }
+
+  let deferredInstall = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstall = e;
+    if(installBtn) installBtn.style.display = 'flex';
+  });
+
+  window.installApp = async function(){
+    if(deferredInstall){
+      deferredInstall.prompt();
+      const choice = await deferredInstall.userChoice;
+      deferredInstall = null;
+      if(installBtn) installBtn.style.display = 'none';
+      if(choice && choice.outcome === 'accepted' && typeof toast === 'function') toast('// App installée ✓');
+      return;
+    }
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const msg = isIOS
+      ? "// Partage > Sur l'écran d'accueil"
+      : "// Menu > Ajouter à l'écran d'accueil";
+    if(typeof toast === 'function') toast(msg); else alert(msg);
+  };
+
+  window.addEventListener('appinstalled', () => { if(installBtn) installBtn.style.display = 'none'; });
 })();
 </script>
 <!--
