@@ -470,7 +470,7 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .day-task-block.done-block{opacity:.5;border-left-color:var(--muted);}
 
 /* VUE JOUR */
-.day-view{display:flex;flex-direction:column;gap:0;overflow-y:auto;max-height:calc(100vh - 180px);}
+.day-view{display:flex;flex-direction:column;gap:0;}
 .day-header-big{
   background:linear-gradient(135deg,rgba(15,19,25,0.9),rgba(22,28,38,0.7));
   border:1px solid rgba(255,255,255,0.07);
@@ -645,7 +645,6 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
   --cat-musique:#2dd4bf;
   --cat-dev:#5b8def;
   --cat-sport:#22c55e;
-  --cat-none:#3a4255;
 }
 .cat-picker{display:flex;gap:6px;flex-wrap:wrap;}
 .cat-chip{
@@ -666,14 +665,12 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .cat-chip[data-cat="musique"] .cat-dot{background:var(--cat-musique);}
 .cat-chip[data-cat="dev"] .cat-dot{background:var(--cat-dev);}
 .cat-chip[data-cat="sport"] .cat-dot{background:var(--cat-sport);}
-.cat-chip[data-cat="none"] .cat-dot{background:var(--cat-none);}
 .cat-chip.selected[data-cat="tournage"]{background:var(--cat-tournage);box-shadow:0 0 12px rgba(232,55,42,0.35);}
 .cat-chip.selected[data-cat="montage"]{background:var(--cat-montage);box-shadow:0 0 12px rgba(201,168,76,0.35);}
 .cat-chip.selected[data-cat="live"]{background:var(--cat-live);box-shadow:0 0 12px rgba(157,78,221,0.35);}
 .cat-chip.selected[data-cat="musique"]{background:var(--cat-musique);box-shadow:0 0 12px rgba(45,212,191,0.35);}
 .cat-chip.selected[data-cat="dev"]{background:var(--cat-dev);box-shadow:0 0 12px rgba(91,141,239,0.35);}
 .cat-chip.selected[data-cat="sport"]{background:var(--cat-sport);box-shadow:0 0 12px rgba(34,197,94,0.35);}
-.cat-chip.selected[data-cat="none"]{background:var(--cat-none);box-shadow:none;}
 
 /* Badge catégorie compact (affiché sur les blocs de tâches) */
 .cat-badge{
@@ -685,7 +682,6 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .cat-badge.musique{background:var(--cat-musique);}
 .cat-badge.dev{background:var(--cat-dev);}
 .cat-badge.sport{background:var(--cat-sport);}
-.cat-badge.none{background:var(--cat-none);}
 
 /* Bordure colorée par catégorie sur les blocs */
 .task-block.cat-tournage,.day-task-block.cat-tournage{border-left-color:var(--cat-tournage);}
@@ -693,13 +689,11 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .task-block.cat-live,.day-task-block.cat-live{border-left-color:var(--cat-live);}
 .task-block.cat-musique,.day-task-block.cat-musique{border-left-color:var(--cat-musique);}
 .task-block.cat-dev,.day-task-block.cat-dev{border-left-color:var(--cat-dev);}
-.task-block.cat-none,.day-task-block.cat-none{border-left-color:var(--cat-none);}
 .month-task-dot.cat-tournage{border-left-color:var(--cat-tournage);}
 .month-task-dot.cat-montage{border-left-color:var(--cat-montage);}
 .month-task-dot.cat-live{border-left-color:var(--cat-live);}
 .month-task-dot.cat-musique{border-left-color:var(--cat-musique);}
 .month-task-dot.cat-dev{border-left-color:var(--cat-dev);}
-.month-task-dot.cat-none{border-left-color:var(--cat-none);}
 
 /* ══════════════════════════════════
    GRAPHIQUE HEBDOMADAIRE
@@ -1223,7 +1217,6 @@ const DAYS_SHORT=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
 // ═══════════════════ CATÉGORIES ═══════════════════
 const CATEGORIES=[
-  {id:'none',   label:'Aucune'},
   {id:'tournage',label:'Tournage'},
   {id:'montage',label:'Montage'},
   {id:'live',label:'Live'},
@@ -1693,17 +1686,15 @@ function renderWeek(ws){
   };
 }
 
-// ─── VUE JOUR — grille horaire pleine largeur ───
+// ─── VUE JOUR — mode liste compacte ───
 function renderDayView(d){
   const key=dKey(d);
-  const today=new Date();
-  const isT=d.toDateString()===today.toDateString();
-  const dayTasks=planTasks[key]||[];
+  const dayTasks=(planTasks[key]||[]).slice().sort((a,b)=>timeToMin(a.start||'00:00')-timeToMin(b.start||'00:00'));
   const total=dayTasks.length, done=dayTasks.filter(t=>t.done).length;
   const pct=total?Math.round(done/total*100):0;
   const dv=document.getElementById('dayView');
 
-  // En-tête avec progression
+  // Header + progression
   let html=`<div class="day-header-big">
     <div class="day-title-big">${DAYS_FULL[d.getDay()]}</div>
     <div class="day-date-sub">${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</div>
@@ -1715,66 +1706,41 @@ function renderDayView(d){
     ${total>0?`<div style="margin-top:12px;"><button class="btn-ghost" style="font-size:0.5rem;padding:7px 14px;" data-action="copyplan" data-key="${key}">⎘ Copier ce planning vers d'autres jours</button></div>`:''}
   </div>`;
 
-  // Grille horaire pleine largeur
-  html+=`<div style="border:1px solid rgba(255,255,255,0.06);border-radius:var(--r-lg);overflow:hidden;background:rgba(15,19,25,0.7);box-shadow:var(--shadow-card);">`;
-
-  // Ligne d'en-tête de la grille
-  html+=`<div style="display:grid;grid-template-columns:60px 1fr;background:rgba(22,28,38,0.9);border-bottom:1px solid rgba(255,255,255,0.07);">`;
-  html+=`<div style="border-right:1px solid rgba(255,255,255,0.05);"></div>`;
-  html+=`<div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;color:${isT?'var(--red)':'#fff'};">${DAYS_FULL[d.getDay()].toUpperCase()} ${d.getDate()}</div>
-    <button class="btn-red" style="padding:5px 16px;font-size:0.48rem;" data-action="addtask" data-key="${key}">+ Ajouter une tâche</button>
+  // Bouton ajouter
+  html+=`<div style="margin-bottom:12px;">
+    <button class="btn-red" style="width:100%;" data-action="addtask" data-key="${key}">+ Ajouter une tâche</button>
   </div>`;
-  html+=`</div>`;
 
-  // Corps : colonne heures + colonne tâches
-  html+=`<div style="display:grid;grid-template-columns:60px 1fr;">`;
-
-  // Colonne heures
-  html+=`<div>`;
-  HOURS.forEach(h=>{
-    html+=`<div style="height:${HOUR_H}px;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px 10px 0 0;font-family:'Share Tech Mono',monospace;font-size:0.42rem;letter-spacing:1px;color:var(--muted);border-right:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.03);">${h}</div>`;
-  });
-  html+=`</div>`;
-
-  // Colonne tâches (positionnement absolu)
-  html+=`<div style="height:${HOUR_H*24}px;position:relative;" data-key="${key}" data-action="daygridclick">`;
-  // Lignes de fond
-  for(let h=0;h<24;h++){
-    html+=`<div style="position:absolute;top:${h*HOUR_H}px;left:0;right:0;height:${HOUR_H}px;border-bottom:1px solid rgba(255,255,255,0.04);"></div>`;
+  if(!dayTasks.length){
+    html+=`<div style="font-family:'Share Tech Mono',monospace;font-size:0.52rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);text-align:center;padding:40px 0;">// Aucune tâche ce jour</div>`;
+    dv.innerHTML=html;
+    delegateDayView(dv, key);
+    return;
   }
-  // Message si aucune tâche
-  if(!total){
-    html+=`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Share Tech Mono',monospace;font-size:0.52rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">// Aucune tâche ce jour</div>`;
-  }
-  // Blocs tâches
+
+  // Liste des tâches triées par heure
+  html+=`<div style="display:flex;flex-direction:column;gap:6px;">`;
   dayTasks.forEach((tk,ti)=>{
-    if(!tk.start) return;
-    const sMin=timeToMin(tk.start);
-    const eMin=tk.end?timeToMin(tk.end):sMin+60;
-    const dur=Math.max(15,eMin-sMin);
-    const topPx=(sMin/60)*HOUR_H;
-    const heightPx=Math.max(24,(dur/60)*HOUR_H);
-    html+=`<div class="day-task-block cat-${tk.cat||'none'}${tk.done?' done-block':''}"
-      style="top:${topPx}px;height:${heightPx}px;position:absolute;left:6px;right:6px;padding:4px 8px;"
-      data-action="taskdetail" data-key="${key}" data-ti="${ti}">
-      <div class="task-block-title"><span class="cat-badge ${tk.cat||'none'}"></span> ${tk.title}</div>
-      ${heightPx>36?`<div class="task-block-time">${tk.start}${tk.end?' – '+tk.end:''}</div>`:''}
+    const realIdx=(planTasks[key]||[]).indexOf(tk);
+    const isDone=tk.done;
+    const catColor=`var(--cat-${tk.cat||'dev'})`;
+    html+=`<div style="display:flex;gap:0;background:var(--bg2);border:1px solid ${isDone?'rgba(255,255,255,0.04)':'var(--border2)'};border-left:3px solid ${isDone?'var(--muted)':catColor};transition:border-color .2s;">
+      <div style="width:72px;flex-shrink:0;padding:12px 8px;border-right:1px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:1px;color:var(--red);">${tk.start||'--:--'}</div>
+        ${tk.end?`<div style="font-family:'Share Tech Mono',monospace;font-size:0.48rem;color:var(--muted);">↓</div><div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:1px;color:var(--muted);">${tk.end}</div>`:''}
+      </div>
+      <div style="flex:1;padding:10px 12px;min-width:0;cursor:pointer;" data-action="taskdetail" data-key="${key}" data-ti="${realIdx}">
+        <div style="font-size:0.9rem;font-weight:600;color:${isDone?'var(--muted)':'var(--text)'};${isDone?'text-decoration:line-through;':''}margin-bottom:${tk.desc?'4px':'0'};display:flex;align-items:center;gap:6px;"><span class="cat-badge ${tk.cat||'dev'}"></span>${tk.title}</div>
+        ${tk.desc?`<div style="font-size:0.78rem;font-weight:300;color:var(--muted);line-height:1.5;">${tk.desc}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;flex-shrink:0;">
+        <div class="slot-checkbox${isDone?' done':''}" data-action="toggletask" data-key="${key}" data-ti="${realIdx}"></div>
+      </div>
     </div>`;
   });
   html+=`</div>`;
-  html+=`</div>`;
-  html+=`</div>`;
 
   dv.innerHTML=html;
-
-  // Scroll automatique vers l'heure courante (ou première tâche)
-  const firstTask=dayTasks.find(t=>t.start);
-  const scrollTo=isT
-    ? Math.max(0,(new Date().getHours()-1)*HOUR_H)
-    : firstTask ? Math.max(0,(timeToMin(firstTask.start)/60-1)*HOUR_H) : 0;
-  setTimeout(()=>{ dv.scrollTop=scrollTo; },60);
-
   delegateDayView(dv, key);
 }
 
@@ -1905,8 +1871,8 @@ function openTaskModalPrefilled(dateKey, startStr, endStr){
   document.getElementById('task-modal-label').textContent='// Nouvelle tâche';
   document.getElementById('task-modal-save-btn').textContent='Sauvegarder';
   document.getElementById('task-modal-del-btn').style.display='none';
-  document.getElementById('task-cat-input').value='none';
-  renderCatPicker('none');
+  document.getElementById('task-cat-input').value='dev';
+  renderCatPicker('dev');
   openModal('task-modal');
 }
 
@@ -1924,7 +1890,7 @@ function openTaskDetail(dateKey, ti){
   document.getElementById('task-modal-label').textContent='// Modifier la tâche';
   document.getElementById('task-modal-save-btn').textContent='Modifier';
   document.getElementById('task-modal-del-btn').style.display='inline-block';
-  const cat=tk.cat||'none';
+  const cat=tk.cat||'dev';
   document.getElementById('task-cat-input').value=cat;
   renderCatPicker(cat);
   openModal('task-modal');
@@ -2222,21 +2188,19 @@ function renderStatsCats(){
     live:     '#9d4edd',
     musique:  '#2dd4bf',
     dev:      '#5b8def',
-    sport:    '#22c55e',
-    none:     '#3a4255'
+    sport:    '#22c55e'
   };
 
-  // Count missed tasks per category across whole month (exclure 'none' des stats)
-  const STATS_CATS = CATEGORIES.filter(c => c.id !== 'none');
+  // Count missed tasks per category across whole month
   const missed = {};
   const total  = {};
-  STATS_CATS.forEach(c => { missed[c.id] = 0; total[c.id] = 0; });
+  CATEGORIES.forEach(c => { missed[c.id] = 0; total[c.id] = 0; });
 
   for(let d = 1; d <= daysInMonth; d++){
     const key = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const tasks = planTasks[key] || [];
     tasks.forEach(t => {
-      const cat = t.cat || 'none';
+      const cat = t.cat || 'dev';
       if(missed[cat] !== undefined){
         total[cat]++;
         if(!t.done) missed[cat]++;
@@ -2245,7 +2209,7 @@ function renderStatsCats(){
   }
 
   const grid = document.getElementById('statsCatsGrid');
-  grid.innerHTML = STATS_CATS.map(c => {
+  grid.innerHTML = CATEGORIES.map(c => {
     const m = missed[c.id];
     const color = CAT_COLORS[c.id] || '#e8372a';
     return `<div class="stats-cat-card${m > 0 ? ' has-missed' : ''}">
