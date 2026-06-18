@@ -73,10 +73,11 @@
     try {
       const snap = await getDoc(doc(db, 'dashboard_data', key));
       return snap.exists() ? snap.data().value : def;
-    } catch(e) { return def; }
+    } catch(e) { console.error('[Firestore] fsLoad("' + key + '") a échoué :', e); return def; }
   }
   async function fsSave(key, value) {
-    try { await setDoc(doc(db, 'dashboard_data', key), { value }); } catch(e) {}
+    try { await setDoc(doc(db, 'dashboard_data', key), { value }); }
+    catch(e) { console.error('[Firestore] fsSave("' + key + '") a échoué :', e); }
   }
 
   // Exposer les fonctions au scope global (onclick)
