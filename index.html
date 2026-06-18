@@ -456,18 +456,33 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .hour-cell{height:52px;border-bottom:1px solid rgba(255,255,255,0.03);}
 .task-block{
   border-left:2px solid var(--red);
-  background:rgba(232,55,42,0.1);
+  background:rgba(232,55,42,0.14);
+  box-shadow:0 0 0 1px rgba(7,9,14,0.7), 0 1px 4px rgba(0,0,0,0.3);
   padding:4px 7px;overflow:hidden;cursor:pointer;
   border-radius:0 var(--r-sm) var(--r-sm) 0;
-  transition:background .2s;z-index:10;
+  transition:background .2s, filter .2s;z-index:10;
 }
-.task-block:hover{background:rgba(232,55,42,0.2);}
+.task-block:hover{filter:brightness(1.35);}
 .task-block-title{font-size:0.7rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .task-block-time{font-family:'Share Tech Mono',monospace;font-size:0.42rem;letter-spacing:1px;color:var(--muted);}
-.task-block.done-block{opacity:.5;border-left-color:var(--muted);}
-.day-task-block{border-left:2px solid var(--red);background:rgba(232,55,42,0.1);overflow:hidden;cursor:pointer;border-radius:0 var(--r-sm) var(--r-sm) 0;transition:background .2s;z-index:10;}
-.day-task-block:hover{background:rgba(232,55,42,0.2);}
-.day-task-block.done-block{opacity:.5;border-left-color:var(--muted);}
+.task-block.done-block{opacity:.5;border-left-color:var(--muted);background:rgba(255,255,255,0.04);}
+/* Fonds distincts par catégorie pour éviter que les blocs adjacents se fondent visuellement */
+.task-block.cat-tournage{background:rgba(232,55,42,0.18);}
+.task-block.cat-montage{background:rgba(201,168,76,0.18);border-left-color:var(--cat-montage);}
+.task-block.cat-live{background:rgba(157,78,221,0.18);border-left-color:var(--cat-live);}
+.task-block.cat-musique{background:rgba(45,212,191,0.18);border-left-color:var(--cat-musique);}
+.task-block.cat-dev{background:rgba(91,141,239,0.18);border-left-color:var(--cat-dev);}
+.task-block.cat-sport{background:rgba(34,197,94,0.18);border-left-color:var(--cat-sport);}
+
+.day-task-block{border-left:2px solid var(--red);background:rgba(232,55,42,0.14);box-shadow:0 0 0 1px rgba(7,9,14,0.7);overflow:hidden;cursor:pointer;border-radius:0 var(--r-sm) var(--r-sm) 0;transition:background .2s, filter .2s;z-index:10;}
+.day-task-block:hover{filter:brightness(1.35);}
+.day-task-block.done-block{opacity:.5;border-left-color:var(--muted);background:rgba(255,255,255,0.04);}
+.day-task-block.cat-tournage{background:rgba(232,55,42,0.18);}
+.day-task-block.cat-montage{background:rgba(201,168,76,0.18);border-left-color:var(--cat-montage);}
+.day-task-block.cat-live{background:rgba(157,78,221,0.18);border-left-color:var(--cat-live);}
+.day-task-block.cat-musique{background:rgba(45,212,191,0.18);border-left-color:var(--cat-musique);}
+.day-task-block.cat-dev{background:rgba(91,141,239,0.18);border-left-color:var(--cat-dev);}
+.day-task-block.cat-sport{background:rgba(34,197,94,0.18);border-left-color:var(--cat-sport);}
 
 /* VUE JOUR */
 .day-view{display:flex;flex-direction:column;gap:0;}
@@ -1664,9 +1679,11 @@ function renderWeek(ws){
       const eMin=tk.end ? timeToMin(tk.end) : sMin+60;
       const dur=Math.max(15, eMin-sMin); // durée min 15 min
       const topPx=(sMin/60)*HOUR_H;
-      const heightPx=Math.max(22,(dur/60)*HOUR_H);
+      const heightPxRaw=Math.max(22,(dur/60)*HOUR_H);
+      const GAP=2; // espace visuel entre deux blocs empilés
+      const heightPx=Math.max(18,heightPxRaw-GAP);
       html+=`<div class="task-block cat-${tk.cat||'dev'}${tk.done?' done-block':''}"
-        style="top:${topPx}px;height:${heightPx}px;position:absolute;left:3px;right:3px;"
+        style="top:${topPx+GAP/2}px;height:${heightPx}px;position:absolute;left:3px;right:3px;"
         data-action="taskdetail" data-key="${key}" data-ti="${ti}">
         <div class="task-block-title"><span class="cat-badge ${tk.cat||'dev'}"></span> ${tk.title}</div>
         <div class="task-block-time">${tk.start}${tk.end?' – '+tk.end:''}</div>
