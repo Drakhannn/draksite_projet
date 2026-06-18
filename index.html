@@ -39,13 +39,15 @@
 
   async function showApp(user) {
     // Charger les données Firestore avant d'afficher
-    folders   = await fsLoad('folders', []);
-    planTasks = await fsLoad('planTasks', {});
+    // On écrit sur window.folders/window.planTasks pour que le script classique y ait accès
+    window.folders   = await fsLoad('folders', []);
+    window.planTasks = await fsLoad('planTasks', {});
     loginScreen.style.display = 'none';
     appWrap.style.display     = 'block';
     // Rafraîchir l'UI avec les données chargées (après affichage)
     setTimeout(() => {
       if (typeof renderFolders === 'function') renderFolders();
+      if (typeof renderObjectifs === 'function') renderObjectifs();
       if (typeof renderPlan === 'function') renderPlan();
     }, 50);
     if (userAvatar) { userAvatar.src = user.photoURL || ''; userAvatar.style.display = 'block'; }
@@ -1201,8 +1203,8 @@ function save(k, v) {
   const fsKey = k === 'drk_folders2' ? 'folders' : 'planTasks';
   if (window._fsSave) window._fsSave(fsKey, v);
 }
-let folders = [];
-let planTasks = {};
+var folders = [];
+var planTasks = {};
 
 // ═══════════════════ UTILS ═══════════════════
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
