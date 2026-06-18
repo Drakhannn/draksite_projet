@@ -2040,7 +2040,7 @@ function renderCopyCalendar(){
     DAYS_SHORT.map(d=>`<div class="copy-day-name">${d}</div>`).join('');
 
   const first = new Date(y, m, 1);
-  let start = (first.getDay()+6)%7;
+  let start = first.getDay(); // 0=Dimanche ... 6=Samedi, aligné avec l'entête Dim/Lun/Mar/Mer/Jeu/Ven/Sam
   const dim = new Date(y, m+1, 0).getDate();
   const prev = new Date(y, m, 0).getDate();
   const today = new Date();
