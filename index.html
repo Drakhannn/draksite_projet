@@ -645,6 +645,7 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
   --cat-musique:#2dd4bf;
   --cat-dev:#5b8def;
   --cat-sport:#22c55e;
+  --cat-none:#3a4255;
 }
 .cat-picker{display:flex;gap:6px;flex-wrap:wrap;}
 .cat-chip{
@@ -665,12 +666,14 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .cat-chip[data-cat="musique"] .cat-dot{background:var(--cat-musique);}
 .cat-chip[data-cat="dev"] .cat-dot{background:var(--cat-dev);}
 .cat-chip[data-cat="sport"] .cat-dot{background:var(--cat-sport);}
+.cat-chip[data-cat="none"] .cat-dot{background:var(--cat-none);}
 .cat-chip.selected[data-cat="tournage"]{background:var(--cat-tournage);box-shadow:0 0 12px rgba(232,55,42,0.35);}
 .cat-chip.selected[data-cat="montage"]{background:var(--cat-montage);box-shadow:0 0 12px rgba(201,168,76,0.35);}
 .cat-chip.selected[data-cat="live"]{background:var(--cat-live);box-shadow:0 0 12px rgba(157,78,221,0.35);}
 .cat-chip.selected[data-cat="musique"]{background:var(--cat-musique);box-shadow:0 0 12px rgba(45,212,191,0.35);}
 .cat-chip.selected[data-cat="dev"]{background:var(--cat-dev);box-shadow:0 0 12px rgba(91,141,239,0.35);}
 .cat-chip.selected[data-cat="sport"]{background:var(--cat-sport);box-shadow:0 0 12px rgba(34,197,94,0.35);}
+.cat-chip.selected[data-cat="none"]{background:var(--cat-none);box-shadow:none;}
 
 /* Badge catégorie compact (affiché sur les blocs de tâches) */
 .cat-badge{
@@ -682,6 +685,7 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .cat-badge.musique{background:var(--cat-musique);}
 .cat-badge.dev{background:var(--cat-dev);}
 .cat-badge.sport{background:var(--cat-sport);}
+.cat-badge.none{background:var(--cat-none);}
 
 /* Bordure colorée par catégorie sur les blocs */
 .task-block.cat-tournage,.day-task-block.cat-tournage{border-left-color:var(--cat-tournage);}
@@ -689,11 +693,13 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 .task-block.cat-live,.day-task-block.cat-live{border-left-color:var(--cat-live);}
 .task-block.cat-musique,.day-task-block.cat-musique{border-left-color:var(--cat-musique);}
 .task-block.cat-dev,.day-task-block.cat-dev{border-left-color:var(--cat-dev);}
+.task-block.cat-none,.day-task-block.cat-none{border-left-color:var(--cat-none);}
 .month-task-dot.cat-tournage{border-left-color:var(--cat-tournage);}
 .month-task-dot.cat-montage{border-left-color:var(--cat-montage);}
 .month-task-dot.cat-live{border-left-color:var(--cat-live);}
 .month-task-dot.cat-musique{border-left-color:var(--cat-musique);}
 .month-task-dot.cat-dev{border-left-color:var(--cat-dev);}
+.month-task-dot.cat-none{border-left-color:var(--cat-none);}
 
 /* ══════════════════════════════════
    GRAPHIQUE HEBDOMADAIRE
@@ -1217,6 +1223,7 @@ const DAYS_SHORT=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
 // ═══════════════════ CATÉGORIES ═══════════════════
 const CATEGORIES=[
+  {id:'none',   label:'Aucune'},
   {id:'tournage',label:'Tournage'},
   {id:'montage',label:'Montage'},
   {id:'live',label:'Live'},
@@ -1723,7 +1730,7 @@ function renderDayView(d){
   dayTasks.forEach((tk,ti)=>{
     const realIdx=(planTasks[key]||[]).indexOf(tk);
     const isDone=tk.done;
-    const catColor=`var(--cat-${tk.cat||'dev'})`;
+    const catColor=`var(--cat-${tk.cat||'none'})`;
     html+=`<div style="display:flex;gap:0;background:var(--bg2);border:1px solid ${isDone?'rgba(255,255,255,0.04)':'var(--border2)'};border-left:3px solid ${isDone?'var(--muted)':catColor};transition:border-color .2s;">
       <div style="width:72px;flex-shrink:0;padding:12px 8px;border-right:1px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
         <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:1px;color:var(--red);">${tk.start||'--:--'}</div>
@@ -1871,8 +1878,8 @@ function openTaskModalPrefilled(dateKey, startStr, endStr){
   document.getElementById('task-modal-label').textContent='// Nouvelle tâche';
   document.getElementById('task-modal-save-btn').textContent='Sauvegarder';
   document.getElementById('task-modal-del-btn').style.display='none';
-  document.getElementById('task-cat-input').value='dev';
-  renderCatPicker('dev');
+  document.getElementById('task-cat-input').value='none';
+  renderCatPicker('none');
   openModal('task-modal');
 }
 
@@ -1890,7 +1897,7 @@ function openTaskDetail(dateKey, ti){
   document.getElementById('task-modal-label').textContent='// Modifier la tâche';
   document.getElementById('task-modal-save-btn').textContent='Modifier';
   document.getElementById('task-modal-del-btn').style.display='inline-block';
-  const cat=tk.cat||'dev';
+  const cat=tk.cat||'none';
   document.getElementById('task-cat-input').value=cat;
   renderCatPicker(cat);
   openModal('task-modal');
@@ -2188,19 +2195,21 @@ function renderStatsCats(){
     live:     '#9d4edd',
     musique:  '#2dd4bf',
     dev:      '#5b8def',
-    sport:    '#22c55e'
+    sport:    '#22c55e',
+    none:     '#3a4255'
   };
 
-  // Count missed tasks per category across whole month
+  // Count missed tasks per category across whole month (exclure 'none' des stats)
+  const STATS_CATS = CATEGORIES.filter(c => c.id !== 'none');
   const missed = {};
   const total  = {};
-  CATEGORIES.forEach(c => { missed[c.id] = 0; total[c.id] = 0; });
+  STATS_CATS.forEach(c => { missed[c.id] = 0; total[c.id] = 0; });
 
   for(let d = 1; d <= daysInMonth; d++){
     const key = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const tasks = planTasks[key] || [];
     tasks.forEach(t => {
-      const cat = t.cat || 'dev';
+      const cat = t.cat || 'none';
       if(missed[cat] !== undefined){
         total[cat]++;
         if(!t.done) missed[cat]++;
@@ -2209,7 +2218,7 @@ function renderStatsCats(){
   }
 
   const grid = document.getElementById('statsCatsGrid');
-  grid.innerHTML = CATEGORIES.map(c => {
+  grid.innerHTML = STATS_CATS.map(c => {
     const m = missed[c.id];
     const color = CAT_COLORS[c.id] || '#e8372a';
     return `<div class="stats-cat-card${m > 0 ? ' has-missed' : ''}">
