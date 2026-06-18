@@ -2209,18 +2209,25 @@ function renderStatsCats(){
   };
 
   // Count missed tasks per category across whole month
+  // Une tâche n'est "ratée" que si son jour est déjà passé (avant aujourd'hui).
+  // Les jours futurs (et le jour même, pas encore terminé) ne comptent pas comme ratés.
   const missed = {};
   const total  = {};
   CATEGORIES.forEach(c => { missed[c.id] = 0; total[c.id] = 0; });
 
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
   for(let d = 1; d <= daysInMonth; d++){
     const key = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dayDate = new Date(year, month, d);
+    const isPast = dayDate < today; // jour strictement avant aujourd'hui
     const tasks = planTasks[key] || [];
     tasks.forEach(t => {
       const cat = t.cat || 'dev';
       if(missed[cat] !== undefined){
         total[cat]++;
-        if(!t.done) missed[cat]++;
+        if(!t.done && isPast) missed[cat]++;
       }
     });
   }
