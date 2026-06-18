@@ -68,6 +68,17 @@
     showApp(user);
   });
 
+  // ── Firestore helpers (définis ICI pour avoir accès à db/doc/getDoc/setDoc) ──
+  async function fsLoad(key, def) {
+    try {
+      const snap = await getDoc(doc(db, 'dashboard_data', key));
+      return snap.exists() ? snap.data().value : def;
+    } catch(e) { return def; }
+  }
+  async function fsSave(key, value) {
+    try { await setDoc(doc(db, 'dashboard_data', key), { value }); } catch(e) {}
+  }
+
   // Exposer les fonctions au scope global (onclick)
   // Expose Firestore helpers to global scope
   window._db = db;
@@ -1183,17 +1194,8 @@ textarea.drk-input{resize:vertical;min-height:80px;font-family:'Rajdhani',sans-s
 
 <script>
 // ═══════════════════ STORAGE ═══════════════════
-// ── Firestore helpers ──
-async function fsLoad(key, def) {
-  try {
-    const snap = await getDoc(doc(db, 'dashboard_data', key));
-    return snap.exists() ? snap.data().value : def;
-  } catch(e) { return def; }
-}
-async function fsSave(key, value) {
-  try { await setDoc(doc(db, 'dashboard_data', key), { value }); } catch(e) {}
-}
-// Aliases pour compatibilité (sync wrappers — données chargées au login)
+// ── Firestore (fsLoad/fsSave sont définis dans le module Firebase plus haut,
+//    là où db/doc/getDoc/setDoc existent réellement — voir window._fsLoad/_fsSave) ──
 function save(k, v) {
   const fsKey = k === 'drk_folders2' ? 'folders' : 'planTasks';
   if (window._fsSave) window._fsSave(fsKey, v);
